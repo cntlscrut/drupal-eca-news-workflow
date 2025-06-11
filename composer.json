@@ -1,20 +1,19 @@
 {
-  "name": "drupal/news_editorial_workflow_recipe",
+  "name": "cntlscrut/drupal-eca-news-workflow",
   "description": "Complete automated editorial workflow system for news organizations using ECA (Event Condition Action)",
   "type": "drupal-recipe",
   "license": "GPL-2.0-or-later",
-  "version": "1.0.0",
   "authors": [
     {
-      "name": "ECA Demo Project",
+      "name": "cntlscrut",
       "role": "Maintainer"
     }
   ],
-  "homepage": "https://github.com/drupal/news_editorial_workflow_recipe",
+  "homepage": "https://github.com/cntlscrut/drupal-eca-news-workflow",
   "support": {
-    "issues": "https://github.com/drupal/news_editorial_workflow_recipe/issues",
-    "documentation": "https://github.com/drupal/news_editorial_workflow_recipe/blob/main/README.md",
-    "source": "https://github.com/drupal/news_editorial_workflow_recipe"
+    "issues": "https://github.com/cntlscrut/drupal-eca-news-workflow/issues",
+    "documentation": "https://github.com/cntlscrut/drupal-eca-news-workflow/blob/main/README.md",
+    "source": "https://github.com/cntlscrut/drupal-eca-news-workflow"
   },
   "keywords": [
     "drupal",
@@ -29,8 +28,8 @@
   "require": {
     "drupal/core": "^11.0",
     "drupal/eca": "^2.1",
-    "drupal/content_moderation": "*",
-    "drupal/workflows": "*",
+    "drupal/content_moderation": "^11.0",
+    "drupal/workflows": "^11.0",
     "drupal/scheduler": "^3.0",
     "drupal/token": "^1.0"
   },
@@ -66,4 +65,4 @@
   ],
   "minimum-stability": "stable",
   "prefer-stable": true
-} 
+}
