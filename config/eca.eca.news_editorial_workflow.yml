@@ -1,0 +1,283 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.news
+    - workflows.workflow.basic_editorial
+  module:
+    - eca_base
+    - eca_content
+    - eca_log
+    - eca_workflow
+id: news_editorial_workflow
+modeller: bpmn_io
+label: 'News Editorial Workflow Automation'
+version: v1
+weight: 0
+events:
+  Event_news_update:
+    plugin: 'content_entity:update'
+    label: 'News Content Updated'
+    configuration:
+      type: 'node news'
+    successors:
+      -
+        id: Activity_log_update
+        condition: Flow_state_changed
+  Event_news_create:
+    plugin: 'content_entity:create'
+    label: 'News Content Created'
+    configuration:
+      type: 'node news'
+    successors:
+      -
+        id: Activity_log_creation
+        condition: ''
+conditions:
+  Flow_state_changed:
+    plugin: eca_entity_field_value_changed
+    configuration:
+      field_name: moderation_state
+      entity: ''
+  Flow_is_draft:
+    plugin: eca_entity_field_value
+    configuration:
+      negate: false
+      case: false
+      expected_value: draft
+      field_name: moderation_state
+      operator: equal
+      type: value
+      entity: ''
+  Flow_is_published:
+    plugin: eca_entity_field_value
+    configuration:
+      negate: false
+      case: false
+      expected_value: published
+      field_name: moderation_state
+      operator: equal
+      type: value
+      entity: ''
+  Flow_is_unpublished:
+    plugin: eca_entity_field_value
+    configuration:
+      negate: false
+      case: false
+      expected_value: unpublished
+      field_name: moderation_state
+      operator: equal
+      type: value
+      entity: ''
+  Flow_is_in_review:
+    plugin: eca_entity_field_value
+    configuration:
+      negate: false
+      case: false
+      expected_value: in_review
+      field_name: moderation_state
+      operator: equal
+      type: value
+      entity: ''
+gateways:
+  Gateway_state_router:
+    type: 0
+    successors:
+      -
+        id: Activity_handle_draft
+        condition: Flow_is_draft
+      -
+        id: Activity_handle_in_review
+        condition: Flow_is_in_review
+      -
+        id: Activity_handle_published
+        condition: Flow_is_published
+      -
+        id: Activity_handle_unpublished
+        condition: Flow_is_unpublished
+actions:
+  Activity_log_update:
+    plugin: eca_write_log_message
+    label: 'Log News Update'
+    configuration:
+      level: info
+      message: 'News article "[node:title]" was updated by [current_user:name]. New state: [node:moderation_state]. Revision message: [node:log]'
+      channel: news_workflow
+    successors:
+      -
+        id: Gateway_state_router
+        condition: ''
+  Activity_log_creation:
+    plugin: eca_write_log_message
+    label: 'Log News Creation'
+    configuration:
+      level: info
+      message: 'News article "[node:title]" was created by [current_user:name] in [node:moderation_state] state'
+      channel: news_workflow
+    successors: {}
+  Activity_handle_draft:
+    plugin: eca_token_set_value
+    label: 'Set draft context'
+    configuration:
+      token_name: notification_type
+      token_value: draft
+      use_yaml: false
+    successors:
+      -
+        id: Activity_notify_draft
+        condition: ''
+  Activity_handle_in_review:
+    plugin: eca_token_set_value
+    label: 'Set in review context'
+    configuration:
+      token_name: notification_type
+      token_value: in_review
+      use_yaml: false
+    successors:
+      -
+        id: Activity_notify_in_review
+        condition: ''
+  Activity_handle_published:
+    plugin: eca_token_set_value
+    label: 'Set published context'
+    configuration:
+      token_name: notification_type
+      token_value: published
+      use_yaml: false
+    successors:
+      -
+        id: Activity_notify_published
+        condition: ''
+  Activity_handle_unpublished:
+    plugin: eca_token_set_value
+    label: 'Set unpublished context'
+    configuration:
+      token_name: notification_type
+      token_value: unpublished
+      use_yaml: false
+    successors:
+      -
+        id: Activity_notify_unpublished
+        condition: ''
+  Activity_notify_draft:
+    plugin: action_send_email_action
+    label: 'Notify editors about draft'
+    configuration:
+      recipient: 'jane@newspaper.local'
+      subject: 'Draft Article Updated: [node:title]'
+      message: |-
+        A news article has been updated in draft state.
+        
+        Article: [node:title]
+        Author: [node:author:name] ([node:author:mail])
+        Updated: [node:changed:medium]
+        Link: [node:url]
+        
+        Editor notes: [node:log]
+        
+        The article is ready for editorial review when you're available.
+      replace_tokens: true
+    successors:
+      -
+        id: Activity_user_message_draft
+        condition: ''
+  Activity_notify_in_review:
+    plugin: action_send_email_action
+    label: 'Notify about in review state'
+    configuration:
+      recipient: 'jane@newspaper.local'
+      subject: 'Article Submitted for Review: [node:title]'
+      message: |-
+        A news article has been submitted for editorial review.
+        
+        Article: [node:title]
+        Author: [node:author:name] ([node:author:mail])
+        Submitted: [node:changed:medium]
+        Review Link: [node:url]
+        
+        Author notes: [node:log]
+        
+        Please review and either approve for publication or send back for revision.
+      replace_tokens: true
+    successors:
+      -
+        id: Activity_user_message_in_review
+        condition: ''
+  Activity_notify_published:
+    plugin: action_send_email_action
+    label: 'Notify author about publication'
+    configuration:
+      recipient: '[node:author:mail]'
+      subject: 'Your Article Published: [node:title]'
+      message: |-
+        Congratulations! Your news article has been published.
+        
+        Article: [node:title]
+        Published: [node:changed:medium]
+        Public URL: [node:url]
+        
+        Editor notes: [node:log]
+        
+        Thank you for your contribution!
+      replace_tokens: true
+    successors:
+      -
+        id: Activity_notify_admin_published
+        condition: ''
+  Activity_notify_unpublished:
+    plugin: action_send_email_action
+    label: 'Notify author about unpublishing'
+    configuration:
+      recipient: '[node:author:mail]'
+      subject: 'Article Unpublished: [node:title]'
+      message: |-
+        Your news article has been unpublished and is no longer visible to the public.
+        
+        Article: [node:title]
+        Unpublished: [node:changed:medium]
+        Edit URL: [node:edit-url]
+        
+        Editor notes: [node:log]
+        
+        Please contact the editorial team if you have questions.
+      replace_tokens: true
+    successors:
+      -
+        id: Activity_user_message_unpublished
+        condition: ''
+  Activity_notify_admin_published:
+    plugin: action_send_email_action
+    label: 'Notify admin about publication'
+    configuration:
+      recipient: 'admin@newspaper.local'
+      subject: 'News Article Published: [node:title]'
+      message: |-
+        A news article has been published.
+        
+        Article: [node:title]
+        Author: [node:author:name]
+        Published by: [current_user:name]
+        Published: [node:changed:medium]
+        Public URL: [node:url]
+        
+        Editorial workflow completed successfully.
+      replace_tokens: true
+    successors: {}
+  Activity_user_message_draft:
+    plugin: action_message_action
+    label: 'Show draft message'
+    configuration:
+      message: 'Your news article "[node:title]" has been saved as a draft.'
+    successors: {}
+  Activity_user_message_in_review:
+    plugin: action_message_action
+    label: 'Show in review message'
+    configuration:
+      message: 'The article "[node:title]" has been submitted for editorial review. You will be notified when the editor completes their review.'
+    successors: {}
+  Activity_user_message_unpublished:
+    plugin: action_message_action
+    label: 'Show unpublished message'
+    configuration:
+      message: 'The article "[node:title]" has been unpublished and is no longer visible to the public.'
+    successors: {} 

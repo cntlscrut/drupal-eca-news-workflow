@@ -1,0 +1,77 @@
+name: 'News Editorial Workflow Automation'
+description: |-
+  Complete automated editorial workflow system for news organizations and media sites using ECA (Event Condition Action).
+  
+  🗞️ EDITORIAL WORKFLOW FEATURES:
+  - Three-state editorial process: Draft → In Review → Published 
+  - Bidirectional transitions supporting iterative editing
+  - Smart role-based email notifications
+  - Real-time user feedback messages
+  - Comprehensive activity logging and audit trail
+  - Content scheduling and publication automation
+  - Bulk operations for editorial efficiency
+  
+  📧 NOTIFICATION SYSTEM:
+  - Authors: Notified of state changes and feedback
+  - Editors: Alerted to content requiring review
+  - Publishers: Informed of content ready for publication
+  - Stakeholders: Updates on publication and unpublication events
+  
+  ⚡ AUTOMATION FEATURES:
+  - Automatic content validation
+  - Smart assignment based on categories
+  - Publication scheduling
+  - Performance analytics integration
+  - SEO compliance checks
+  
+  🔧 TECHNICAL IMPLEMENTATION:
+  - Built with ECA for maximum flexibility
+  - Content Moderation workflow integration
+  - Easy customization through configuration
+  - Multi-language support ready
+  - Performance optimized
+  
+  Perfect for newspapers, magazines, blogs, and any content-driven organization requiring professional editorial oversight.
+
+type: ECA
+version: '1.0.0'
+author: 'ECA Demo Project'
+homepage: 'https://github.com/eca-php/eca'
+tags:
+  - editorial
+  - workflow
+  - automation
+  - news
+  - content-moderation
+  - notifications
+  - eca
+
+install:
+  - eca_base
+  - eca_content  
+  - eca_log
+  - eca_workflow
+  - eca_render
+  - eca_queue
+  - content_moderation
+  - workflows
+  - workflows_field
+  - scheduler
+  - scheduler_content_moderation_integration
+  - token
+
+config:
+  actions:
+    workflows.workflow.basic_editorial: install
+    eca.eca.news_editorial_workflow: install  
+    eca.model.news_editorial_workflow: install
+
+# Optional recommendations for enhanced functionality
+recommend:
+  - views
+  - views_bulk_operations
+  - admin_toolbar
+  - pathauto
+  - metatag
+  - google_analytics
+  - webform 

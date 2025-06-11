@@ -1,0 +1,538 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - eca.eca.news_editorial_workflow
+id: news_editorial_workflow
+label: 'News Editorial Workflow Automation'
+tags:
+  - news
+  - editorial
+  - workflow
+  - notifications
+  - moderation
+documentation: |-
+  Automated editorial workflow for news content with role-based notifications and moderation state management.
+  
+  This workflow provides:
+  - Automatic email notifications to editors and admins when news articles change state
+  - User feedback messages for state transitions
+  - Activity logging for editorial oversight
+  - Integration with the existing editorial workflow (draft → published → unpublished)
+  
+  Notifications are sent to:
+  - Authors: When their articles are published or unpublished
+  - Editors: When articles need review or are published
+  - Admins: For all editorial activity
+  
+  This workflow is specifically designed for newspaper/media sites using the news content type.
+filename: ''
+modeldata: |
+  <?xml version="1.0" encoding="UTF-8"?>
+  <bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="news-editorial-workflow" targetNamespace="http://bpmn.io/schema/bpmn" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd">
+    <bpmn2:process id="news_editorial_workflow" name="News Editorial Workflow Automation" isExecutable="true" camunda:versionTag="v1">
+      <bpmn2:documentation>Automated editorial workflow for news content with role-based notifications and moderation state management.</bpmn2:documentation>
+      <bpmn2:extensionElements>
+        <camunda:properties>
+          <camunda:property name="Changelog v1" value="Initial news editorial workflow version"/>
+          <camunda:property name="Tags" value="news,editorial,workflow,notifications,moderation"/>
+        </camunda:properties>
+      </bpmn2:extensionElements>
+      
+      <bpmn2:startEvent id="Event_news_update" name="News Content Updated" camunda:modelerTemplate="org.drupal.event.content_entity:update">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="content_entity:update"/>
+          </camunda:properties>
+          <camunda:field name="type">
+            <camunda:string>node news</camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+        <bpmn2:outgoing>Flow_to_state_check</bpmn2:outgoing>
+      </bpmn2:startEvent>
+      
+      <bpmn2:startEvent id="Event_news_create" name="News Content Created" camunda:modelerTemplate="org.drupal.event.content_entity:create">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="content_entity:create"/>
+          </camunda:properties>
+          <camunda:field name="type">
+            <camunda:string>node news</camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+        <bpmn2:outgoing>Flow_to_log_creation</bpmn2:outgoing>
+      </bpmn2:startEvent>
+      
+      <bpmn2:task id="Activity_log_update" name="Log News Update" camunda:modelerTemplate="org.drupal.action.eca_write_log_message">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="eca_write_log_message"/>
+          </camunda:properties>
+          <camunda:field name="level">
+            <camunda:string>info</camunda:string>
+          </camunda:field>
+          <camunda:field name="message">
+            <camunda:string>News article "[node:title]" was updated by [current_user:name]. New state: [node:moderation_state]. Revision message: [node:log]</camunda:string>
+          </camunda:field>
+          <camunda:field name="channel">
+            <camunda:string>news_workflow</camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+        <bpmn2:incoming>Flow_to_state_check</bpmn2:incoming>
+        <bpmn2:outgoing>Flow_to_gateway</bpmn2:outgoing>
+      </bpmn2:task>
+      
+      <bpmn2:task id="Activity_log_creation" name="Log News Creation" camunda:modelerTemplate="org.drupal.action.eca_write_log_message">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="eca_write_log_message"/>
+          </camunda:properties>
+          <camunda:field name="level">
+            <camunda:string>info</camunda:string>
+          </camunda:field>
+          <camunda:field name="message">
+            <camunda:string>News article "[node:title]" was created by [current_user:name] in [node:moderation_state] state</camunda:string>
+          </camunda:field>
+          <camunda:field name="channel">
+            <camunda:string>news_workflow</camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+        <bpmn2:incoming>Flow_to_log_creation</bpmn2:incoming>
+      </bpmn2:task>
+      
+      <bpmn2:exclusiveGateway id="Gateway_state_router" name="Route by State">
+        <bpmn2:incoming>Flow_to_gateway</bpmn2:incoming>
+        <bpmn2:outgoing>Flow_to_draft</bpmn2:outgoing>
+        <bpmn2:outgoing>Flow_to_published</bpmn2:outgoing>
+        <bpmn2:outgoing>Flow_to_unpublished</bpmn2:outgoing>
+      </bpmn2:exclusiveGateway>
+      
+      <bpmn2:task id="Activity_handle_draft" name="Handle Draft State" camunda:modelerTemplate="org.drupal.action.eca_token_set_value">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="eca_token_set_value"/>
+          </camunda:properties>
+          <camunda:field name="token_name">
+            <camunda:string>notification_type</camunda:string>
+          </camunda:field>
+          <camunda:field name="token_value">
+            <camunda:string>draft</camunda:string>
+          </camunda:field>
+          <camunda:field name="use_yaml">
+            <camunda:string>no</camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+        <bpmn2:incoming>Flow_to_draft</bpmn2:incoming>
+        <bpmn2:outgoing>Flow_to_notify_draft</bpmn2:outgoing>
+      </bpmn2:task>
+      
+      <bpmn2:task id="Activity_notify_draft" name="Notify Editor about Draft" camunda:modelerTemplate="org.drupal.action.action_send_email_action">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="action_send_email_action"/>
+          </camunda:properties>
+          <camunda:field name="recipient">
+            <camunda:string>jane@newspaper.local</camunda:string>
+          </camunda:field>
+          <camunda:field name="subject">
+            <camunda:string>Draft Article Ready for Review: [node:title]</camunda:string>
+          </camunda:field>
+          <camunda:field name="message">
+            <camunda:string>A news article has been saved as draft and may need editorial review.
+  
+  Article: [node:title]
+  Author: [node:author:name] ([node:author:mail])
+  Created: [node:created:medium]
+  Link: [node:url]
+  
+  Editor notes: [node:log]
+  
+  Please review when convenient.</camunda:string>
+          </camunda:field>
+          <camunda:field name="replace_tokens">
+            <camunda:string>yes</camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+        <bpmn2:incoming>Flow_to_notify_draft</bpmn2:incoming>
+        <bpmn2:outgoing>Flow_to_draft_message</bpmn2:outgoing>
+      </bpmn2:task>
+      
+      <bpmn2:task id="Activity_user_message_draft" name="Show Draft Message" camunda:modelerTemplate="org.drupal.action.action_message_action">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="action_message_action"/>
+          </camunda:properties>
+          <camunda:field name="message">
+            <camunda:string>Your news article "[node:title]" has been saved as a draft. Editors have been notified for review.</camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+        <bpmn2:incoming>Flow_to_draft_message</bpmn2:incoming>
+      </bpmn2:task>
+      
+      <bpmn2:task id="Activity_handle_published" name="Handle Published State" camunda:modelerTemplate="org.drupal.action.eca_token_set_value">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="eca_token_set_value"/>
+          </camunda:properties>
+          <camunda:field name="token_name">
+            <camunda:string>notification_type</camunda:string>
+          </camunda:field>
+          <camunda:field name="token_value">
+            <camunda:string>published</camunda:string>
+          </camunda:field>
+          <camunda:field name="use_yaml">
+            <camunda:string>no</camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+        <bpmn2:incoming>Flow_to_published</bpmn2:incoming>
+        <bpmn2:outgoing>Flow_to_notify_published</bpmn2:outgoing>
+      </bpmn2:task>
+      
+      <bpmn2:task id="Activity_handle_unpublished" name="Handle Unpublished State" camunda:modelerTemplate="org.drupal.action.eca_token_set_value">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="eca_token_set_value"/>
+          </camunda:properties>
+          <camunda:field name="token_name">
+            <camunda:string>notification_type</camunda:string>
+          </camunda:field>
+          <camunda:field name="token_value">
+            <camunda:string>unpublished</camunda:string>
+          </camunda:field>
+          <camunda:field name="use_yaml">
+            <camunda:string>no</camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+        <bpmn2:incoming>Flow_to_unpublished</bpmn2:incoming>
+        <bpmn2:outgoing>Flow_to_notify_unpublished</bpmn2:outgoing>
+      </bpmn2:task>
+      
+      <bpmn2:task id="Activity_handle_in_review" name="Handle In Review State" camunda:modelerTemplate="org.drupal.action.eca_token_set_value">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="eca_token_set_value"/>
+          </camunda:properties>
+          <camunda:field name="token_name">
+            <camunda:string>notification_type</camunda:string>
+          </camunda:field>
+          <camunda:field name="token_value">
+            <camunda:string>in_review</camunda:string>
+          </camunda:field>
+          <camunda:field name="use_yaml">
+            <camunda:string>no</camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+        <bpmn2:incoming>Flow_to_in_review</bpmn2:incoming>
+        <bpmn2:outgoing>Flow_to_notify_in_review</bpmn2:outgoing>
+      </bpmn2:task>
+      
+      <bpmn2:task id="Activity_notify_in_review" name="Notify Editor About Review" camunda:modelerTemplate="org.drupal.action.action_send_email_action">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="action_send_email_action"/>
+          </camunda:properties>
+          <camunda:field name="recipient">
+            <camunda:string>jane@newspaper.local</camunda:string>
+          </camunda:field>
+          <camunda:field name="subject">
+            <camunda:string>Article Submitted for Review: [node:title]</camunda:string>
+          </camunda:field>
+          <camunda:field name="message">
+            <camunda:string>A news article has been submitted for editorial review. Article: [node:title] - Author: [node:author:name] - Email: [node:author:mail] - Submitted: [node:changed:medium] - Review Link: [node:url] - Author notes: [node:log] - Please review and either approve for publication or send back for revision.</camunda:string>
+          </camunda:field>
+          <camunda:field name="replace_tokens">
+            <camunda:string>yes</camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+        <bpmn2:incoming>Flow_to_notify_in_review</bpmn2:incoming>
+        <bpmn2:outgoing>Flow_to_in_review_message</bpmn2:outgoing>
+      </bpmn2:task>
+      
+      <bpmn2:task id="Activity_user_message_in_review" name="Show In Review Message" camunda:modelerTemplate="org.drupal.action.action_message_action">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="action_message_action"/>
+          </camunda:properties>
+          <camunda:field name="message">
+            <camunda:string>The article "[node:title]" has been submitted for editorial review. You will be notified when the editor completes their review.</camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+        <bpmn2:incoming>Flow_to_in_review_message</bpmn2:incoming>
+      </bpmn2:task>
+      
+      <!-- Flow Definitions -->
+      <bpmn2:sequenceFlow id="Flow_to_state_check" sourceRef="Event_news_update" targetRef="Activity_log_update">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="eca_entity_field_value_changed"/>
+          </camunda:properties>
+          <camunda:field name="field_name">
+            <camunda:string>moderation_state</camunda:string>
+          </camunda:field>
+          <camunda:field name="entity">
+            <camunda:string></camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+      </bpmn2:sequenceFlow>
+      
+      <bpmn2:sequenceFlow id="Flow_to_log_creation" sourceRef="Event_news_create" targetRef="Activity_log_creation"/>
+      <bpmn2:sequenceFlow id="Flow_to_gateway" sourceRef="Activity_log_update" targetRef="Gateway_state_router"/>
+      
+      <bpmn2:sequenceFlow id="Flow_to_draft" name="Is Draft?" sourceRef="Gateway_state_router" targetRef="Activity_handle_draft">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="eca_entity_field_value"/>
+          </camunda:properties>
+          <camunda:field name="field_name">
+            <camunda:string>moderation_state</camunda:string>
+          </camunda:field>
+          <camunda:field name="operator">
+            <camunda:string>equal</camunda:string>
+          </camunda:field>
+          <camunda:field name="expected_value">
+            <camunda:string>draft</camunda:string>
+          </camunda:field>
+          <camunda:field name="type">
+            <camunda:string>value</camunda:string>
+          </camunda:field>
+          <camunda:field name="case">
+            <camunda:string>no</camunda:string>
+          </camunda:field>
+          <camunda:field name="negate">
+            <camunda:string>no</camunda:string>
+          </camunda:field>
+          <camunda:field name="entity">
+            <camunda:string></camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+      </bpmn2:sequenceFlow>
+      
+      <bpmn2:sequenceFlow id="Flow_to_published" name="Is Published?" sourceRef="Gateway_state_router" targetRef="Activity_handle_published">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="eca_entity_field_value"/>
+          </camunda:properties>
+          <camunda:field name="field_name">
+            <camunda:string>moderation_state</camunda:string>
+          </camunda:field>
+          <camunda:field name="operator">
+            <camunda:string>equal</camunda:string>
+          </camunda:field>
+          <camunda:field name="expected_value">
+            <camunda:string>published</camunda:string>
+          </camunda:field>
+          <camunda:field name="type">
+            <camunda:string>value</camunda:string>
+          </camunda:field>
+          <camunda:field name="case">
+            <camunda:string>no</camunda:string>
+          </camunda:field>
+          <camunda:field name="negate">
+            <camunda:string>no</camunda:string>
+          </camunda:field>
+          <camunda:field name="entity">
+            <camunda:string></camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+      </bpmn2:sequenceFlow>
+      
+      <bpmn2:sequenceFlow id="Flow_to_unpublished" name="Is Unpublished?" sourceRef="Gateway_state_router" targetRef="Activity_handle_unpublished">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="eca_entity_field_value"/>
+          </camunda:properties>
+          <camunda:field name="field_name">
+            <camunda:string>moderation_state</camunda:string>
+          </camunda:field>
+          <camunda:field name="operator">
+            <camunda:string>equal</camunda:string>
+          </camunda:field>
+          <camunda:field name="expected_value">
+            <camunda:string>unpublished</camunda:string>
+          </camunda:field>
+          <camunda:field name="type">
+            <camunda:string>value</camunda:string>
+          </camunda:field>
+          <camunda:field name="case">
+            <camunda:string>no</camunda:string>
+          </camunda:field>
+          <camunda:field name="negate">
+            <camunda:string>no</camunda:string>
+          </camunda:field>
+          <camunda:field name="entity">
+            <camunda:string></camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+      </bpmn2:sequenceFlow>
+      
+      <bpmn2:sequenceFlow id="Flow_to_in_review" name="Is In Review?" sourceRef="Gateway_state_router" targetRef="Activity_handle_in_review">
+        <bpmn2:extensionElements>
+          <camunda:properties>
+            <camunda:property name="pluginid" value="eca_entity_field_value"/>
+          </camunda:properties>
+          <camunda:field name="field_name">
+            <camunda:string>moderation_state</camunda:string>
+          </camunda:field>
+          <camunda:field name="operator">
+            <camunda:string>equal</camunda:string>
+          </camunda:field>
+          <camunda:field name="expected_value">
+            <camunda:string>in_review</camunda:string>
+          </camunda:field>
+          <camunda:field name="type">
+            <camunda:string>value</camunda:string>
+          </camunda:field>
+          <camunda:field name="case">
+            <camunda:string>no</camunda:string>
+          </camunda:field>
+          <camunda:field name="negate">
+            <camunda:string>no</camunda:string>
+          </camunda:field>
+          <camunda:field name="entity">
+            <camunda:string></camunda:string>
+          </camunda:field>
+        </bpmn2:extensionElements>
+      </bpmn2:sequenceFlow>
+      
+      <bpmn2:sequenceFlow id="Flow_to_notify_draft" sourceRef="Activity_handle_draft" targetRef="Activity_notify_draft"/>
+      <bpmn2:sequenceFlow id="Flow_to_draft_message" sourceRef="Activity_notify_draft" targetRef="Activity_user_message_draft"/>
+      <bpmn2:sequenceFlow id="Flow_to_notify_published" sourceRef="Activity_handle_published" targetRef="Activity_notify_published"/>
+      <bpmn2:sequenceFlow id="Flow_to_notify_unpublished" sourceRef="Activity_handle_unpublished" targetRef="Activity_notify_unpublished"/>
+      <bpmn2:sequenceFlow id="Flow_to_notify_in_review" sourceRef="Activity_handle_in_review" targetRef="Activity_notify_in_review"/>
+      <bpmn2:sequenceFlow id="Flow_to_in_review_message" sourceRef="Activity_notify_in_review" targetRef="Activity_user_message_in_review"/>
+      
+    </bpmn2:process>
+    <bpmndi:BPMNDiagram id="NewsEditorialWorkflowDiagram">
+      <bpmndi:BPMNPlane id="NewsEditorialWorkflowPlane" bpmnElement="news_editorial_workflow">
+        <bpmndi:BPMNShape id="Event_news_update_di" bpmnElement="Event_news_update">
+          <dc:Bounds x="180" y="200" width="36" height="36"/>
+          <bpmndi:BPMNLabel>
+            <dc:Bounds x="157" y="243" width="82" height="27"/>
+          </bpmndi:BPMNLabel>
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="Event_news_create_di" bpmnElement="Event_news_create">
+          <dc:Bounds x="180" y="80" width="36" height="36"/>
+          <bpmndi:BPMNLabel>
+            <dc:Bounds x="157" y="123" width="82" height="27"/>
+          </bpmndi:BPMNLabel>
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="Activity_log_update_di" bpmnElement="Activity_log_update">
+          <dc:Bounds x="280" y="178" width="100" height="80"/>
+          <bpmndi:BPMNLabel/>
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="Activity_log_creation_di" bpmnElement="Activity_log_creation">
+          <dc:Bounds x="280" y="58" width="100" height="80"/>
+          <bpmndi:BPMNLabel/>
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="Gateway_state_router_di" bpmnElement="Gateway_state_router" isMarkerVisible="true">
+          <dc:Bounds x="440" y="193" width="50" height="50"/>
+          <bpmndi:BPMNLabel>
+            <dc:Bounds x="430" y="250" width="70" height="14"/>
+          </bpmndi:BPMNLabel>
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="Activity_handle_draft_di" bpmnElement="Activity_handle_draft">
+          <dc:Bounds x="550" y="120" width="100" height="80"/>
+          <bpmndi:BPMNLabel/>
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="Activity_notify_draft_di" bpmnElement="Activity_notify_draft">
+          <dc:Bounds x="710" y="120" width="100" height="80"/>
+          <bpmndi:BPMNLabel/>
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="Activity_user_message_draft_di" bpmnElement="Activity_user_message_draft">
+          <dc:Bounds x="870" y="120" width="100" height="80"/>
+          <bpmndi:BPMNLabel/>
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="Activity_handle_in_review_di" bpmnElement="Activity_handle_in_review">
+          <dc:Bounds x="550" y="200" width="100" height="80"/>
+          <bpmndi:BPMNLabel/>
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="Activity_notify_in_review_di" bpmnElement="Activity_notify_in_review">
+          <dc:Bounds x="710" y="200" width="100" height="80"/>
+          <bpmndi:BPMNLabel/>
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="Activity_user_message_in_review_di" bpmnElement="Activity_user_message_in_review">
+          <dc:Bounds x="870" y="200" width="100" height="80"/>
+          <bpmndi:BPMNLabel/>
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="Activity_handle_published_di" bpmnElement="Activity_handle_published">
+          <dc:Bounds x="550" y="280" width="100" height="80"/>
+          <bpmndi:BPMNLabel/>
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="Activity_handle_unpublished_di" bpmnElement="Activity_handle_unpublished">
+          <dc:Bounds x="550" y="360" width="100" height="80"/>
+          <bpmndi:BPMNLabel/>
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNEdge id="Flow_to_state_check_di" bpmnElement="Flow_to_state_check">
+          <di:waypoint x="216" y="218"/>
+          <di:waypoint x="280" y="218"/>
+          <bpmndi:BPMNLabel>
+            <dc:Bounds x="230" y="200" width="36" height="14"/>
+          </bpmndi:BPMNLabel>
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="Flow_to_log_creation_di" bpmnElement="Flow_to_log_creation">
+          <di:waypoint x="216" y="98"/>
+          <di:waypoint x="280" y="98"/>
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="Flow_to_gateway_di" bpmnElement="Flow_to_gateway">
+          <di:waypoint x="380" y="218"/>
+          <di:waypoint x="440" y="218"/>
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="Flow_to_draft_di" bpmnElement="Flow_to_draft">
+          <di:waypoint x="465" y="193"/>
+          <di:waypoint x="465" y="160"/>
+          <di:waypoint x="550" y="160"/>
+          <bpmndi:BPMNLabel>
+            <dc:Bounds x="486" y="143" width="38" height="14"/>
+          </bpmndi:BPMNLabel>
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="Flow_to_published_di" bpmnElement="Flow_to_published">
+          <di:waypoint x="465" y="243"/>
+          <di:waypoint x="465" y="280"/>
+          <di:waypoint x="550" y="280"/>
+          <bpmndi:BPMNLabel>
+            <dc:Bounds x="475" y="286" width="60" height="14"/>
+          </bpmndi:BPMNLabel>
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="Flow_to_in_review_di" bpmnElement="Flow_to_in_review">
+          <di:waypoint x="465" y="218"/>
+          <di:waypoint x="465" y="240"/>
+          <di:waypoint x="550" y="240"/>
+          <bpmndi:BPMNLabel>
+            <dc:Bounds x="475" y="246" width="64" height="14"/>
+          </bpmndi:BPMNLabel>
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="Flow_to_published_di" bpmnElement="Flow_to_published">
+          <di:waypoint x="465" y="243"/>
+          <di:waypoint x="465" y="320"/>
+          <di:waypoint x="550" y="320"/>
+          <bpmndi:BPMNLabel>
+            <dc:Bounds x="475" y="326" width="60" height="14"/>
+          </bpmndi:BPMNLabel>
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="Flow_to_unpublished_di" bpmnElement="Flow_to_unpublished">
+          <di:waypoint x="465" y="243"/>
+          <di:waypoint x="465" y="400"/>
+          <di:waypoint x="550" y="400"/>
+          <bpmndi:BPMNLabel>
+            <dc:Bounds x="475" y="406" width="72" height="14"/>
+          </bpmndi:BPMNLabel>
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="Flow_to_notify_draft_di" bpmnElement="Flow_to_notify_draft">
+          <di:waypoint x="650" y="160"/>
+          <di:waypoint x="710" y="160"/>
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="Flow_to_draft_message_di" bpmnElement="Flow_to_draft_message">
+          <di:waypoint x="810" y="160"/>
+          <di:waypoint x="870" y="160"/>
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="Flow_to_notify_in_review_di" bpmnElement="Flow_to_notify_in_review">
+          <di:waypoint x="650" y="240"/>
+          <di:waypoint x="710" y="240"/>
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="Flow_to_in_review_message_di" bpmnElement="Flow_to_in_review_message">
+          <di:waypoint x="810" y="240"/>
+          <di:waypoint x="870" y="240"/>
+        </bpmndi:BPMNEdge>
+      </bpmndi:BPMNPlane>
+    </bpmndi:BPMNDiagram>
+  </bpmn2:definitions> 

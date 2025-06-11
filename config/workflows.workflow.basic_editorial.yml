@@ -1,0 +1,77 @@
+uuid: 27ab8ad5-3894-4c3b-86e6-b6e780dfad64
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.news
+    - node.type.page
+  module:
+    - content_moderation
+_core:
+  default_config_hash: cTcLoeCkGY_boimnlZKzLdtKZmR7FXc6AirGUwq_Lts
+id: basic_editorial
+label: 'Enhanced Editorial Workflow'
+type: content_moderation
+type_settings:
+  states:
+    draft:
+      label: Draft
+      weight: -1
+      published: false
+      default_revision: false
+    in_review:
+      label: 'In Review'
+      weight: 0
+      published: false
+      default_revision: false
+    published:
+      label: Published
+      weight: 1
+      published: true
+      default_revision: true
+    unpublished:
+      label: Unpublished
+      weight: 2
+      published: false
+      default_revision: true
+  transitions:
+    create_new_draft:
+      label: 'Create new draft'
+      from:
+        - unpublished
+        - draft
+        - published
+        - in_review
+      to: draft
+      weight: -1
+    submit_for_review:
+      label: 'Submit for Review'
+      from:
+        - draft
+      to: in_review
+      weight: 0
+    send_back_to_draft:
+      label: 'Send back to Draft'
+      from:
+        - in_review
+      to: draft
+      weight: 1
+    publish:
+      label: Publish
+      from:
+        - in_review
+        - published
+        - unpublished
+      to: published
+      weight: 2
+    unpublish:
+      label: Unpublish
+      from:
+        - published
+      to: unpublished
+      weight: 3
+  entity_types:
+    node:
+      - news
+      - page
+  default_moderation_state: draft 

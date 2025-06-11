@@ -1,0 +1,69 @@
+{
+  "name": "drupal/news_editorial_workflow_recipe",
+  "description": "Complete automated editorial workflow system for news organizations using ECA (Event Condition Action)",
+  "type": "drupal-recipe",
+  "license": "GPL-2.0-or-later",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "ECA Demo Project",
+      "role": "Maintainer"
+    }
+  ],
+  "homepage": "https://github.com/drupal/news_editorial_workflow_recipe",
+  "support": {
+    "issues": "https://github.com/drupal/news_editorial_workflow_recipe/issues",
+    "documentation": "https://github.com/drupal/news_editorial_workflow_recipe/blob/main/README.md",
+    "source": "https://github.com/drupal/news_editorial_workflow_recipe"
+  },
+  "keywords": [
+    "drupal",
+    "recipe",
+    "editorial",
+    "workflow",
+    "automation",
+    "news",
+    "eca",
+    "content-moderation"
+  ],
+  "require": {
+    "drupal/core": "^11.0",
+    "drupal/eca": "^2.1",
+    "drupal/content_moderation": "*",
+    "drupal/workflows": "*",
+    "drupal/scheduler": "^3.0",
+    "drupal/token": "^1.0"
+  },
+  "suggest": {
+    "drupal/views": "For enhanced content listing and management",
+    "drupal/views_bulk_operations": "For bulk editorial operations",
+    "drupal/admin_toolbar": "For improved administrative interface",
+    "drupal/pathauto": "For SEO-friendly URLs",
+    "drupal/metatag": "For SEO optimization",
+    "drupal/google_analytics": "For content performance tracking"
+  },
+  "config": {
+    "preferred-install": "dist",
+    "sort-packages": true
+  },
+  "extra": {
+    "drupal-recipe": {
+      "type": "eca",
+      "category": "editorial",
+      "tags": [
+        "workflow",
+        "automation",
+        "news",
+        "content-moderation"
+      ]
+    }
+  },
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://packages.drupal.org/8"
+    }
+  ],
+  "minimum-stability": "stable",
+  "prefer-stable": true
+} 
