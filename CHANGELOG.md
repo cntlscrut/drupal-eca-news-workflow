@@ -5,6 +5,19 @@ All notable changes to the News Editorial Workflow Automation recipe will be doc
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [11.x-1.x-dev] - Development Branch
+
+### Added
+- Development branch for Drupal.org compatibility  
+- Drupal.org naming convention support
+- Enhanced development documentation
+- Automatic sync between GitHub and Drupal.org repositories
+
+### Changed
+- Updated version numbering to follow Drupal.org conventions (11.x-1.x-dev)
+- Added development-specific metadata to recipe.yml
+- Updated project name to indicate development status
+
 ## [1.0.0] - 2024-12-26
 
 ### Added

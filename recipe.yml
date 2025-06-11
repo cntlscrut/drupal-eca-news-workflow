@@ -1,5 +1,7 @@
-name: 'News Editorial Workflow Automation'
+name: 'News Editorial Workflow Automation (Dev)'
 description: |-
+  ⚠️  DEVELOPMENT VERSION - Use for testing and development only!
+  
   Complete automated editorial workflow system for news organizations and media sites using ECA (Event Condition Action).
   
   🗞️ EDITORIAL WORKFLOW FEATURES:
@@ -34,8 +36,10 @@ description: |-
   Perfect for newspapers, magazines, blogs, and any content-driven organization requiring professional editorial oversight.
 
 type: ECA
-version: '1.0.0'
+version: '11.x-1.x-dev'
 author: 'ECA Demo Project'
+development: true
+stability: dev
 homepage: 'https://github.com/eca-php/eca'
 tags:
   - editorial
