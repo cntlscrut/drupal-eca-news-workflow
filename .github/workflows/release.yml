@@ -1,0 +1,57 @@
+name: Release & Update Packagist
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+
+jobs:
+  validate-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Check package structure
+        run: |
+          echo "🔍 Checking package structure..."
+          test -f recipe.yml || (echo "❌ recipe.yml missing" && exit 1)
+          test -f README.md || (echo "❌ README.md missing" && exit 1)
+          test -f LICENSE || (echo "❌ LICENSE missing" && exit 1)
+          test -d config || (echo "❌ config directory missing" && exit 1)
+          echo "✅ Package structure looks good!"
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Release version: $VERSION"
+
+      - name: Update Packagist
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "🚀 Notifying Packagist of new release..."
+          response=$(curl -s -XPOST -H'content-type:application/json' \
+            'https://packagist.org/api/update-package?username=${{ secrets.PACKAGIST_USERNAME }}&apiToken=${{ secrets.PACKAGIST_TOKEN }}' \
+            -d'{"repository":{"url":"https://github.com/${{ github.repository }}"}}')
+          echo "📦 Packagist response: $response"
+          echo "✅ Packagist updated successfully for ${{ steps.version.outputs.version }}"
+
+      - name: Create release notes
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "📝 Release ${{ steps.version.outputs.version }} has been published!"
+          echo "🔗 Package available at: https://packagist.org/packages/cntlscrut/drupal-eca-news-workflow"
+          echo "📦 Install with: composer require cntlscrut/drupal-eca-news-workflow" 
